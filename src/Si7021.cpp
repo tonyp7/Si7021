@@ -68,7 +68,6 @@ uint16_t Si7021::readSensor(const uint8_t instr, const int8_t returnSize){
 	return (uint16_t)((msb << 8) | lsb);
 }
 
-
 /// <summary>
 ///		Measure the temperature. Since reading humidity also forces a temperature measurement, you shouldn't use this function unless you just want the temperature
 /// 	<seealso cref="Si7021::getTemperatureFromPreviousHumidityMeasurement"/>  
@@ -131,7 +130,7 @@ void Si7021::reset(){
 
 /// <summary>
 ///		Read the 64 bit serial number of the Si7021 sensor
-///		Because 64 bit 
+///		Because 64 bit is expensive this should be used for debugging purposes only.
 /// </summary>
 /// <returns>Serial number</returns>
 uint64_t Si7021::getSerialNumber(){
@@ -189,4 +188,99 @@ uint8_t Si7021::getFirmwareVersion() {
 	}
 
 	return buffer;
+}
+
+/// <summary>
+///		Turn on/off the heater.
+/// <param name="on">Set to TRUE for on, FALSE for off</param>
+/// <param name="power">Value between 0 and 15. Strength of the heater. WARNING: power value of 15 uses up to 95mA at 3.3V. Consult the documentation</param>
+///	</summary>
+void Si7021::setHeater(bool on, uint8_t power)
+{
+	uint8_t reg = 0x00;
+
+	if (on) {
+
+		//filter user input and write heat control (from 0x00 to 0x0F)
+		reg = this->readRegister(SI7021_READ_HEATER_CONTROL_REGISTER);
+		reg |= (power & 0x0F);
+		this->writeRegister(SI7021_WRITE_HEATER_CONTROL_REGISTER, reg);
+
+		//turn on heater by turning on bit HTRE which is the 3rd bit hence the 0x04 (0b100) mask 
+		reg = 0x3A; //0011 1010 is the default value of this register.
+		reg = this->readRegister(SI7021_READ_USER_REGISTER);
+		reg |= 0x04;
+		this->writeRegister(SI7021_WRITE_USER_REGISTER, reg);
+
+	}
+	else {
+		//turn off heater by turning off bit HTRE which is the 3rd bit hence the 0xFB (1111 1011) mask
+		reg = this->readRegister(SI7021_READ_USER_REGISTER);
+		reg &= 0xFB;
+		this->writeRegister(SI7021_WRITE_USER_REGISTER, reg);
+	}
+}
+
+
+uint8_t Si7021::readRegister(uint8_t registerAddress)
+{
+	uint8_t buffer;
+
+	Wire.beginTransmission(SI7021_ADDRESS);
+	Wire.write(registerAddress);
+	Wire.endTransmission();
+
+	//1 byte only: no checksum
+	Wire.requestFrom(SI7021_ADDRESS, 1);
+	while (Wire.available()) {
+		buffer = Wire.read();
+	}
+	return buffer;
+}
+
+void Si7021::writeRegister(uint8_t registerAddress, uint8_t value) {
+	Wire.beginTransmission(SI7021_ADDRESS);
+	Wire.write(registerAddress);
+	Wire.write(value);
+	Wire.endTransmission();
+}
+
+
+/// <summary>
+///		Set the resolution of sensor.
+/// </summary>
+/// <param name="resolution">Resolution can be: 0 (12 bit RH, 14 bit Temperature), 1 (8 bit RH, 12 Bit Temperature), 2 (10 bit RH, 13 bit Temperature) or 3 (11 bit RH, 11 bit Temperature)</param>
+void Si7021::setSensorResolution(uint8_t resolution) {
+	//D7; D0 RES[1:0] Measurement Resolution
+	//D7;D0 :	RH		Temp 
+	// 00	:	12 bit	14 bit 
+	// 01	:	8 bit	12 bit 
+	// 10	:	10 bit	13 bit 
+	// 11	:	11 bit	11 bit
+	//Why they chose to have the MSB and LSB of user register, making it awkward
+	//to set this resolution? We may never know.
+
+	uint8_t reg = 0x3A; //0011 1010 is the default value of this register
+	reg = this->readRegister(SI7021_READ_USER_REGISTER);
+	
+	//zero off D7 and D0 of the register
+	reg &= 0x7E;
+
+	//apply resolution
+	switch (resolution) {
+		case 0x01:
+			reg |= 0x01;
+			break;
+		case 0x02:
+			reg |= 0x80;
+			break;
+		case 0x03:
+			reg |= 0x81;
+		default:
+			break;
+	}
+
+	this->writeRegister(SI7021_WRITE_USER_REGISTER, reg);
+
+
 }

@@ -21,8 +21,10 @@
 #define SI7021_MEASURE_TEMPERATURE_NO_HOLD_MASTER_MODE 0xF3
 #define SI7021_READ_TEMPERATURE_FROM_PREVIOUS_RH_MEASUREMENT 0xE0
 #define SI7021_RESET 0xFE
-#define SI7021_WRITE_REGISTER 0xE6
-#define SI7021_READ_REGISTER 0xE7
+#define SI7021_WRITE_USER_REGISTER 0xE6
+#define SI7021_READ_USER_REGISTER 0xE7
+#define SI7021_WRITE_HEATER_CONTROL_REGISTER 0x51 
+#define SI7021_READ_HEATER_CONTROL_REGISTER 0x11
 
 //maximum wait time is for 3 bytes. At a 100 Khz I2C bus, 50ms is a safe value for timeout
 //eg: 100 bit per ms, 12.5 byte per ms, 37.5ms to transfer 3 bytes
@@ -38,6 +40,8 @@ class Si7021
 {
 	private:
 		uint16_t readSensor(const uint8_t instr, const int8_t returnSize);
+		uint8_t readRegister(uint8_t registerAddress);
+		void writeRegister(uint8_t registerAddress, uint8_t value);
 	public:
 		Si7021();
 		void begin();
@@ -49,4 +53,6 @@ class Si7021
 		float getTemperatureFromPreviousHumidityMeasurementF();
 		uint64_t getSerialNumber();
 		uint8_t getFirmwareVersion();
+		void setHeater(bool on, uint8_t power = 0x00);
+		void setSensorResolution(uint8_t resolution);
 };
