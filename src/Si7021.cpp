@@ -169,3 +169,24 @@ uint64_t Si7021::getSerialNumber(){
 	return serialNo;
 	
 }
+
+/// <summary>
+///		Get the firmware revision. 0xFF = Firmware version 1.0 0x20 = Firmware version 2.0
+///	</summary>
+/// <returns>Firmware version</returns>
+uint8_t Si7021::getFirmwareVersion() {
+	uint8_t buffer = 0x00;
+
+	Wire.beginTransmission(SI7021_ADDRESS);
+	Wire.write(0x84);
+	Wire.write(0xB8);
+	Wire.endTransmission();
+
+	//1 byte only: no checksum
+	Wire.requestFrom(SI7021_ADDRESS, 1);
+	while (Wire.available()) {
+		buffer = Wire.read();
+	}
+
+	return buffer;
+}

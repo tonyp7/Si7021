@@ -47,6 +47,6 @@ class Si7021
 		float measureHumidity();
 		float measureTemperatureF();
 		float getTemperatureFromPreviousHumidityMeasurementF();
-		float measureHumidityF();
 		uint64_t getSerialNumber();
+		uint8_t getFirmwareVersion();
 };
